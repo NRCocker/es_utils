@@ -51,8 +51,9 @@ services:
       - esnet
   kibana:
     image: docker.elastic.co/kibana/kibana:6.4.2
-    volumes:
-      - ./kibana.yml:/usr/share/kibana/config/kibana.yml
+    environment:
+      SERVER_NAME: kibana
+      ELASTICSEARCH_URL: http://kibana
     networks:
       - esnet
     ports:
