@@ -13,8 +13,10 @@ services:
         hard: -1
     volumes:
       - esdata1:/usr/share/elasticsearch/data
+    tty : true
     ports:
       - 9200:9200
+      - 9300:9300
     networks:
       - esnet
   elasticsearch2:
@@ -31,6 +33,7 @@ services:
         hard: -1
     volumes:
       - esdata2:/usr/share/elasticsearch/data
+    tty : true
     networks:
       - esnet
   elasticsearch3:
@@ -47,13 +50,15 @@ services:
         hard: -1
     volumes:
       - esdata3:/usr/share/elasticsearch/data
+    tty : true
     networks:
       - esnet
   kibana:
     image: docker.elastic.co/kibana/kibana:6.4.2
     environment:
       SERVER_NAME: kibana
-      ELASTICSEARCH_URL: http://kibana
+      ELASTICSEARCH_URL: http://elasticsearch1:9200
+    tty : true
     networks:
       - esnet
     ports:
