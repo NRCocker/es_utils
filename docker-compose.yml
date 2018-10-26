@@ -57,7 +57,7 @@ services:
     image: docker.elastic.co/kibana/kibana:6.4.2
     environment:
       SERVER_NAME: kibana
-      ELASTICSEARCH_URL: http://elasticsearch1:9200
+      ELASTICSEARCH_URL: http://172.18.0.1:9200
     tty : true
     networks:
       - esnet
