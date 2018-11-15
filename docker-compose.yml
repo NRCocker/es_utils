@@ -3,7 +3,6 @@ services:
   elasticsearch1:
     image: docker.elastic.co/elasticsearch/elasticsearch:6.4.2
     hostname: elasticsearch1
-    domainname: elasticsearch1.security.netcall.com
     environment:
       - cluster.name=logging-cluster
       - bootstrap.memory_lock=true
@@ -28,7 +27,6 @@ services:
   elasticsearch2:
     image: docker.elastic.co/elasticsearch/elasticsearch:6.4.2
     hostname: elasticsearch2
-    domainname: elasticsearch2.security.netcall.com
     environment:
       - cluster.name=logging-cluster
       - bootstrap.memory_lock=true
@@ -51,10 +49,9 @@ services:
   kibana:
     image: docker.elastic.co/kibana/kibana:6.4.2
     hostname: kibana
-    domainname: kibana.security.netcall.com
     environment:
       SERVER_NAME: kibana
-      ELASTICSEARCH_URL: http://elasticsearch1.security.netcall.com:9200
+      ELASTICSEARCH_URL: http://elasticsearch1:9200
     tty : true
     networks:
       - esnet
