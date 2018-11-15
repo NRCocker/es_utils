@@ -46,28 +46,6 @@ services:
     tty : true
     networks:
       - esnet
-  elasticsearch3:
-    image: docker.elastic.co/elasticsearch/elasticsearch:6.4.2
-    container_name: elasticsearch3
-    environment:
-      - cluster.name=logging-cluster
-      - bootstrap.memory_lock=true
-      - xpack.security.enabled=false
-      - "ES_JAVA_OPTS=-Xms750m -Xmx750m"
-      - discovery.zen.ping.unicast.hosts=elasticsearch1
-      - node.name=elasticsearch3
-    ulimits:
-      memlock:
-        soft: -1
-        hard: -1
-      nofile:
-       soft: 65536
-       hard: 65536
-    volumes:
-      - esdata3:/usr/share/elasticsearch/data
-    tty : true
-    networks:
-      - esnet
   kibana:
     image: docker.elastic.co/kibana/kibana:6.4.2
     environment:
@@ -82,8 +60,6 @@ volumes:
   esdata1:
     driver: local
   esdata2:
-    driver: local
-  esdata3:
     driver: local
 
 networks:
