@@ -105,10 +105,10 @@ services:
       - 12201:12201
       # GELF UDP
       - 12201:12201/udp
-  volumes:
-    gldata1:
-      driver: local
-    gldata2:
-      driver: local
-  networks:
-    glnet:
+volumes:
+  gldata1:
+    driver: local
+  gldata2:
+    driver: local
+networks:
+  glnet:
