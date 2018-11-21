@@ -79,6 +79,9 @@ services:
       - glnet
     ports:
       - "80:5601"
+    depends_on:
+      - elasticsearch1
+      - elasticsearch2
   # Graylog: https://hub.docker.com/r/graylog/graylog/
   graylog:
     image: graylog/graylog:3.0
