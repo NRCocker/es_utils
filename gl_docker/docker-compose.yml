@@ -110,5 +110,7 @@ volumes:
     driver: local
   gldata2:
     driver: local
+
 networks:
   glnet:
+
