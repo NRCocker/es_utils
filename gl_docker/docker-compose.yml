@@ -35,9 +35,9 @@ services:
       - 192.168.86.250:80:80
       - 192.168.86.250:443:443
     volumes:
-      - ./nginx/root:/usr/share/nginx/html:ro
-      - ./nginx/config/conf.d:/etc/nginx/conf.d:ro
-      - ./nginx/config/ssl:/etc/nginx/ssl:ro
+      - ./docker-nginx/root:/usr/share/nginx/html:ro
+      - ./docker-nginx/config/conf.d:/etc/nginx/conf.d:ro
+      - ./docker-nginx/config/ssl:/etc/nginx/ssl:ro
     depends_on:
       - gl1
     networks:
@@ -164,7 +164,7 @@ services:
     volumes:
       # the given configuration will provide cerebro 
       # at $HOSTNAME:9001/cerebro
-      - ./cerebro/cerebro_application.conf:/opt/cerebro/conf/application.conf
+      - ./docker-cerebro/cerebro_application.conf:/opt/cerebro/conf/application.conf
       #- graylog.data.cerebro:/opt/cerebro/conf
     networks:
       - graylog.net
@@ -222,17 +222,17 @@ services:
       es2:
         condition: service_started
     volumes:
-      - ./graylog/config/node-id.gl1:/opt/graylog/config/node-id
-      - ./graylog/shared:/data/shared/
+      - ./docker-graylog/config/node-id.gl1:/opt/graylog/config/node-id
+      - ./docker-graylog/shared:/data/shared/
       - graylog.data.gl1.journal:/opt/graylog/data/journal
       # make archive folder for the Enterprise plugins
-      - ./graylog/archives:/data/archives
+      - ./docker-graylog/archives:/data/archives
       # Mount the local saved Enterprise Plugins
       # wget https://downloads.graylog.org/releases/graylog-enterprise/plugin-bundle/tgz/graylog-enterprise-plugins-2.4.1.tgz
-      - ./graylog/plugins/graylog-plugin-archive-2.4.6.jar:/opt/graylog/plugin/graylog-plugin-archive.jar
-      - ./graylog/plugins/graylog-plugin-auditlog-2.4.6.jar:/opt/graylog/plugin/graylog-plugin-auditlog.jar
-      - ./graylog/plugins/graylog-plugin-license-2.4.6.jar:/opt/graylog/plugin/graylog-plugin-license.jar
-      - ./graylog/plugins/graylog-plugin-auth-sso-2.4.2.jar:/opt/graylog/plugin/graylog-plugin-sso.jar
+      - ./docker-graylog/plugins/graylog-plugin-archive-2.4.6.jar:/opt/graylog/plugin/graylog-plugin-archive.jar
+      - ./docker-graylog/plugins/graylog-plugin-auditlog-2.4.6.jar:/opt/graylog/plugin/graylog-plugin-auditlog.jar
+      - ./docker-graylog/plugins/graylog-plugin-license-2.4.6.jar:/opt/graylog/plugin/graylog-plugin-license.jar
+      - ./docker-graylog/plugins/graylog-plugin-auth-sso-2.4.2.jar:/opt/graylog/plugin/graylog-plugin-sso.jar
     networks:
       graylog.net:
         ipv4_address: 10.10.10.100
@@ -289,17 +289,17 @@ services:
       es2:
         condition: service_started
     volumes:
-      - ./graylog/config/node-id.gl2:/opt/graylog/config/node-id
-      - ./graylog/shared:/data/shared/
+      - ./docker-graylog/config/node-id.gl2:/opt/graylog/config/node-id
+      - ./docker-graylog/shared:/data/shared/
       - graylog.data.gl2.journal:/opt/graylog/data/journal
       # make archive folder for the Enterprise plugins
-      - ./graylog/archives:/data/archives
+      - ./docker-graylog/archives:/data/archives
       # Mount the local saved Enterprise Plugins
       # wget https://downloads.graylog.org/releases/graylog-enterprise/plugin-bundle/tgz/graylog-enterprise-plugins-2.4.1.tgz
-      - ./graylog/plugins/graylog-plugin-archive-2.4.6.jar:/opt/graylog/plugin/graylog-plugin-archive.jar
-      - ./graylog/plugins/graylog-plugin-auditlog-2.4.6.jar:/opt/graylog/plugin/graylog-plugin-auditlog.jar
-      - ./graylog/plugins/graylog-plugin-license-2.4.6.jar:/opt/graylog/plugin/graylog-plugin-license.jar
-      - ./graylog/plugins/graylog-plugin-auth-sso-2.4.2.jar:/opt/graylog/plugin/graylog-plugin-sso.jar
+      - ./docker-graylog/plugins/graylog-plugin-archive-2.4.6.jar:/opt/graylog/plugin/graylog-plugin-archive.jar
+      - ./docker-graylog/plugins/graylog-plugin-auditlog-2.4.6.jar:/opt/graylog/plugin/graylog-plugin-auditlog.jar
+      - ./docker-graylog/plugins/graylog-plugin-license-2.4.6.jar:/opt/graylog/plugin/graylog-plugin-license.jar
+      - ./docker-graylog/plugins/graylog-plugin-auth-sso-2.4.2.jar:/opt/graylog/plugin/graylog-plugin-sso.jar
     networks:
       graylog.net:
         ipv4_address: 10.10.10.101
