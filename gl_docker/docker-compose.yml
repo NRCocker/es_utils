@@ -14,7 +14,7 @@ services:
       - 443:443
     networks:
       glnet:
-        ipv4_address: 172.20.128.1
+        ipv4_address: 172.20.0.1
     tty: true
   # MongoDB: https://hub.docker.com/_/mongo/
   mongodb:
@@ -24,7 +24,7 @@ services:
       - gl_mongo_data:/data/db
     networks:
       glnet:
-        ipv4_address: 172.20.128.2
+        ipv4_address: 172.20.0.2
   # Elasticsearch: https://www.elastic.co/guide/en/elasticsearch/reference/5.6/docker.html
   elasticsearch1:
     image: docker.elastic.co/elasticsearch/elasticsearch:5.6.13
@@ -56,7 +56,7 @@ services:
       - 9300
     networks:
       glnet:
-        ipv4_address: 172.20.128.3
+        ipv4_address: 172.20.0.3
   elasticsearch2:
     image: docker.elastic.co/elasticsearch/elasticsearch:5.6.13
     container_name: elasticsearch2
@@ -71,7 +71,7 @@ services:
       - xpack.ml.enabled=false
       - xpack.graph.enabled=false
       - "ES_JAVA_OPTS=-Xms750m -Xmx750m"
-      - discovery.zen.ping.unicast.hosts=172.20.128.3
+      - discovery.zen.ping.unicast.hosts=172.20.0.3
     ulimits:
       memlock:
         soft: -1
@@ -85,18 +85,18 @@ services:
     tty: true
     networks:
       glnet:
-        ipv4_address: 172.20.128.4
+        ipv4_address: 172.20.0.4
   kibana:
     image: docker.elastic.co/kibana/kibana:5.6.13
     container_name: kibana
     hostname: kibana
     environment:
       SERVER_NAME: kibana
-      ELASTICSEARCH_URL: http://172.20.128.3:9200
+      ELASTICSEARCH_URL: http://172.20.0.3:9200
     tty: true
     networks:
       glnet:
-        ipv4_address: 172.20.128.5
+        ipv4_address: 172.20.0.5
     ports:
       - 5601
     depends_on:
@@ -114,8 +114,8 @@ services:
       - GRAYLOG_PASSWORD_SECRET=somepasswordpepper
       # Password: admin
       - GRAYLOG_ROOT_PASSWORD_SHA2=8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918
-      - GRAYLOG_ELASTICSEARCH_HOSTS=http://172.20.128.6:9200
-      - ELASTICSEARCH_HOSTS=172.20.128.3
+      - GRAYLOG_ELASTICSEARCH_HOSTS=http://172.20.0.6:9200
+      - ELASTICSEARCH_HOSTS=172.20.0.3
     links:
       - mongodb:mongo
       - elasticsearch1
@@ -137,7 +137,7 @@ services:
       - 12201:12201/udp
     networks:
       glnet:
-        ipv4_address: 172.20.128.6
+        ipv4_address: 172.20.0.6
 volumes:
   gl_esdata1:
     driver: local
