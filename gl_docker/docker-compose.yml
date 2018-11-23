@@ -1,154 +1,306 @@
-version: '2'
-services:
-  proxy:
-    image: nginx:latest
-    container_name: nginx_proxy
-    depends_on:
-      - elasticsearch1
-      - kibana
-      - graylog
-    volumes:
-      - /nginx/nginx.conf:/etc/nginx/nginx.conf
-    ports:
-      - 80:80
-      - 443:443
-    networks:
-      glnet:
-        ipv4_address: 172.20.0.1
-    tty: true
-  # MongoDB: https://hub.docker.com/_/mongo/
-  mongodb:
-    image: mongo:3
-    container_name: mongodb
-    volumes:
-      - gl_mongo_data:/data/db
-    networks:
-      glnet:
-        ipv4_address: 172.20.0.2
-  # Elasticsearch: https://www.elastic.co/guide/en/elasticsearch/reference/5.6/docker.html
-  elasticsearch1:
-    image: docker.elastic.co/elasticsearch/elasticsearch:5.6.13
-    container_name: elasticsearch1
-    hostname: elasticsearch1
+version: '2.1'
+
+networks:
+  graylog.net:
+    enable_ipv6: false
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.10.10.0/24
+
+volumes:
+  graylog.data.es1:
+    driver: "local"
+  graylog.data.es2:
+    driver: "local"
+  graylog.data.mongo:
+    driver: "local"
+  graylog.data.mongoclient:
+    driver: "local"
+  graylog.data.gl1.journal:
+    driver: "local"
+  graylog.data.gl2.journal:
+    driver: "local"
+    
+    services:
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
+    hostname: nginx
+    mem_limit: 128m
+    restart: always
     environment:
-        - cluster.name=graylog-cluster
-        - bootstrap.memory_lock=true
-        - xpack.security.enabled=false
-        - xpack.watcher.enabled=false
-        - xpack.monitoring.enabled=true
-        - xpack.security.audit.enabled=false
-        - xpack.ml.enabled=false
-        - xpack.graph.enabled=false
-        - "ES_JAVA_OPTS=-Xms750m -Xmx750m"
+      - TZ=Europe/Berlin
+    ports:
+      - 192.168.86.250:80:80
+      - 192.168.86.250:443:443
+    volumes:
+      - ./nginx/root:/usr/share/nginx/html:ro
+      - ./nginx/config/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/config/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - gl1
+    networks:
+      - graylog.net
+  #
+  # MongoDB: https://hub.docker.com/_/mongo/
+  #
+  mongo:
+    image: mongo:3
+    container_name: mongo
+    hostname: mongo
+    restart: always
+    mem_limit: 256m
+    environment:
+      - TZ=Europe/Berlin
+    ports:
+      # if no need to access the mongoDB from outside
+      # remove this exposed port
+      - 192.168.86.250:27017:27017
+    volumes:
+      - graylog.data.mongo:/data/db
+      # set to servers data folder to be able to reuse
+      #- /srv/glesmulti/mongo:/data/db
+    networks:
+      - graylog.net
+
+  #
+  # https://www.nosqlclient.com/ 
+  #
+  mongoclient:
+    image: mongoclient/mongoclient
+    container_name: mongoclient
+    hostname: mongoclient
+    restart: always
+    mem_limit: 128m
+    environment:
+      - TZ=Europe/Berlin
+      - MONGO_URL=mongodb://mongo:27017/meteor 
+      # do be able to run it in a subfolder
+      # we need to set this.
+      - ROOT_URL=http://127.0.0.1/nosqlclient
+    volumes:
+      - graylog.data.mongoclient:/data/db
+    depends_on:
+      mongo:
+        condition: service_started
+    networks:
+      - graylog.net
+
+  # 
+  # Build a two Elasticsearch Server Cluster that is reachable on localhost (to work with the cluster)
+  # but also connected to the GL 
+  #
+  es1:
+    image: docker.elastic.co/elasticsearch/elasticsearch:5.6.10
+    container_name: es1
+    hostname: es1
+    restart: always
     ulimits:
       memlock:
         soft: -1
         hard: -1
-      nofile:
-        soft: 65536
-        hard: 65536
-    mem_limit: 1g
-    volumes:
-      - gl_esdata1:/usr/share/elasticsearch/data
-    tty: true
-    ports:
-      - 9200
-      - 9300
-    networks:
-      glnet:
-        ipv4_address: 172.20.0.3
-  elasticsearch2:
-    image: docker.elastic.co/elasticsearch/elasticsearch:5.6.13
-    container_name: elasticsearch2
-    hostname: elasticsearch2
+    mem_limit: 3g
     environment:
-      - cluster.name=graylog-cluster
+      - node.name=es1
+      - TZ=Europe/Berlin
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+      - http.host=0.0.0.0
+      - transport.host=es1
+      - network.host=0.0.0.0
       - bootstrap.memory_lock=true
       - xpack.security.enabled=false
       - xpack.watcher.enabled=false
-      - xpack.monitoring.enabled=true
+      - xpack.monitoring.enabled=false
       - xpack.security.audit.enabled=false
       - xpack.ml.enabled=false
       - xpack.graph.enabled=false
-      - "ES_JAVA_OPTS=-Xms750m -Xmx750m"
-      - discovery.zen.ping.unicast.hosts=172.20.0.3
+      - discovery.zen.ping.unicast.hosts=10.10.10.51
+    volumes:
+      - graylog.data.es1:/usr/share/elasticsearch/data
+    networks:
+      graylog.net:
+        ipv4_address: 10.10.10.50
+    ports:
+      - 192.168.86.250:9200:9200
+
+  es2:
+    image: docker.elastic.co/elasticsearch/elasticsearch:5.6.10
+    container_name: es2
+    hostname: es2
+    restart: always
     ulimits:
       memlock:
         soft: -1
         hard: -1
-      nofile:
-        soft: 65536
-        hard: 65536
-    mem_limit: 1g
-    volumes:
-      - gl_esdata2:/usr/share/elasticsearch/data
-    tty: true
-    networks:
-      glnet:
-        ipv4_address: 172.20.0.4
-  kibana:
-    image: docker.elastic.co/kibana/kibana:5.6.13
-    container_name: kibana
-    hostname: kibana
+    mem_limit: 3g
     environment:
-      SERVER_NAME: kibana
-      ELASTICSEARCH_URL: http://172.20.0.3:9200
-    tty: true
+      - node.name=es2
+      - TZ=Europe/Berlin
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+      - http.host=0.0.0.0
+      - transport.host=es2
+      - network.host=0.0.0.0
+      - bootstrap.memory_lock=true
+      - xpack.security.enabled=false
+      - xpack.watcher.enabled=false
+      - xpack.monitoring.enabled=false
+      - xpack.security.audit.enabled=false
+      - xpack.ml.enabled=false
+      - xpack.graph.enabled=false
+      - discovery.zen.ping.unicast.hosts=10.10.10.50
+    volumes:
+      - graylog.data.es2:/usr/share/elasticsearch/data
     networks:
-      glnet:
-        ipv4_address: 172.20.0.5
-    ports:
-      - 5601
-    depends_on:
-      - elasticsearch1
-      - elasticsearch2
+      graylog.net:
+        ipv4_address: 10.10.10.51
+
+  # Cerebro to work with Elasticsearch
+  cerebro:
+    image: yannart/cerebro:latest
+    container_name: cerebro
+    restart: always
+    hostname: cerebro
+    volumes:
+      # the given configuration will provide cerebro 
+      # at $HOSTNAME:9001/cerebro
+      - ./cerebro/cerebro_application.conf:/opt/cerebro/conf/application.conf
+      #- graylog.data.cerebro:/opt/cerebro/conf
+    networks:
+      - graylog.net
+
+
   # Graylog: https://hub.docker.com/r/graylog/graylog/
-  graylog:
-    image: graylog/graylog:3.0
-    container_name: graylog
-    volumes:
-      - gl_graylog_journal:/usr/share/graylog/data/journal
-      - ./graylog/config:/usr/share/graylog/data/config
+  # this will be the Graylog Master
+  gl1:
+    image: joschi/graylog-alpine:2.4.6-1
+    #image: graylog/graylog:2.4.3-1
+    hostname: gl1 
+    container_name: gl1
+    restart: always
+    mem_limit: 1500m
+
     environment:
-      # CHANGE ME!
-      - GRAYLOG_PASSWORD_SECRET=somepasswordpepper
-      # Password: admin
-      - GRAYLOG_ROOT_PASSWORD_SHA2=8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918
-      - GRAYLOG_ELASTICSEARCH_HOSTS=http://172.20.0.3:9200
-      - ELASTICSEARCH_HOSTS=172.20.0.3
-    links:
-      - mongodb:mongo
-      - elasticsearch1
-      - elasticsearch2
-    depends_on:
-      - mongodb
-      - elasticsearch1
-      - elasticsearch2
+      - TZ=Europe/Berlin
+      - "GRAYLOG_SERVER_JAVA_OPTS=-Xms1g -Xmx1g -XX:NewRatio=1 -XX:MaxMetaspaceSize=256m -server -XX:+ResizeTLAB -XX:+UseConcMarkSweepGC -XX:+CMSConcurrentMTEnabled -XX:+CMSClassUnloadingEnabled -XX:+UseParNewGC -XX:-OmitStackTraceInFastThrow"
+      - GRAYLOG_PASSWORD_SECRET=18e6a58d7c9efe94b04600bb716955f306467c25b552883cb9695d6a38128d49
+      - GRAYLOG_ROOT_PASSWORD_SHA2=18e6a58d7c9efe94b04600bb716955f306467c25b552883cb9695d6a38128d49
+      - GRAYLOG_REST_LISTEN_URI=http://0.0.0.0:9000/graylog/api
+      - GRAYLOG_WEB_LISTEN_URI=http://0.0.0.0:9000/graylog
+      # - GRAYLOG_REST_TRANSPORT_URI=http://127.0.0.1:9000/graylog/api
+      - GRAYLOG_WEB_ENDPOINT_URI=http://127.0.0.1:9000/graylog/api
+      - GRAYLOG_ELASTICSEARCH_HOSTS=http://10.10.10.51:9200,http://10.10.10.50:9200
+      - GRAYLOG_TRUSTED_PROXIES=10.10.10.0/24,192.168.1.10/32
+      - GRAYLOG_MONGODB_URI=mongodb://mongo/graylog
+      - GRAYLOG_ALLOW_LEADING_WILDCARD_SEARCHES=true
     ports:
       # Graylog web interface and REST API
-      - 9000
+      - 192.168.86.250:9000:9000
       # Syslog TCP
-      - 514:514
+      - 192.168.86.250:514:1514
       # Syslog UDP
-      - 514:514/udp
+      - 192.168.86.250:514:1514/udp
       # GELF TCP
-      - 12201:12201
+      - 192.168.86.250:12201:12201
       # GELF UDP
-      - 12201:12201/udp
-    networks:
-      glnet:
-        ipv4_address: 172.20.0.6
-volumes:
-  gl_esdata1:
-    driver: local
-  gl_esdata2:
-    driver: local
-  gl_mongo_data:
-    driver: local
-  gl_graylog_journal:
-    driver: local
+      - 192.168.86.250:12201:12201/udp
+      # BEATS
+      - 192.168.86.250:5044:5044
+      # RAW TCP
+      - 192.168.86.250:5555:5555
 
-networks:
-  glnet:
-    external: true
-          
+    links:
+      - mongo
+      - es1
+      - es2
+      - gl2
+    depends_on:
+      mongo:
+        condition: service_started
+      es1:
+        condition: service_started
+      es2:
+        condition: service_started
+    volumes:
+      - ./graylog/config/node-id.gl1:/opt/graylog/config/node-id
+      - ./graylog/shared:/data/shared/
+      - graylog.data.gl1.journal:/opt/graylog/data/journal
+      # make archive folder for the Enterprise plugins
+      - ./graylog/archives:/data/archives
+      # Mount the local saved Enterprise Plugins
+      # wget https://downloads.graylog.org/releases/graylog-enterprise/plugin-bundle/tgz/graylog-enterprise-plugins-2.4.1.tgz
+      - ./graylog/plugins/graylog-plugin-archive-2.4.6.jar:/opt/graylog/plugin/graylog-plugin-archive.jar
+      - ./graylog/plugins/graylog-plugin-auditlog-2.4.6.jar:/opt/graylog/plugin/graylog-plugin-auditlog.jar
+      - ./graylog/plugins/graylog-plugin-license-2.4.6.jar:/opt/graylog/plugin/graylog-plugin-license.jar
+      - ./graylog/plugins/graylog-plugin-auth-sso-2.4.2.jar:/opt/graylog/plugin/graylog-plugin-sso.jar
+    networks:
+      graylog.net:
+        ipv4_address: 10.10.10.100
+
+  # Graylog: https://hub.docker.com/r/graylog/graylog/
+  # this will be the Graylog Master
+  gl2:
+    image: joschi/graylog-alpine:2.4.6-1
+    #image: graylog/graylog:2.4.3-1
+    hostname: gl2 
+    container_name: gl2
+    mem_limit: 1500m
+
+    environment:
+      - GRAYLOG_IS_MASTER=false
+      - TZ=Europe/Berlin
+      - "GRAYLOG_SERVER_JAVA_OPTS=-Xms1g -Xmx1g -XX:NewRatio=1 -XX:MaxMetaspaceSize=256m -server -XX:+ResizeTLAB -XX:+UseConcMarkSweepGC -XX:+CMSConcurrentMTEnabled -XX:+CMSClassUnloadingEnabled -XX:+UseParNewGC -XX:-OmitStackTraceInFastThrow"
+      - GRAYLOG_PASSWORD_SECRET=18e6a58d7c9efe94b04600bb716955f306467c25b552883cb9695d6a38128d49
+      - GRAYLOG_ROOT_PASSWORD_SHA2=18e6a58d7c9efe94b04600bb716955f306467c25b552883cb9695d6a38128d49
+      - GRAYLOG_REST_LISTEN_URI=http://0.0.0.0:9000/graylog/api
+      - GRAYLOG_WEB_LISTEN_URI=http://0.0.0.0:9000/graylog
+      # - GRAYLOG_REST_TRANSPORT_URI=http://127.0.0.1:9000/graylog/api
+      # - GRAYLOG_WEB_ENDPOINT_URI=http://127.0.0.1:9000/graylog/api
+      - GRAYLOG_MONGODB_URI=mongodb://mongo/graylog
+      - GRAYLOG_ELASTICSEARCH_HOSTS=http://10.10.10.51:9200,http://10.10.10.50:9200
+      - GRAYLOG_ALLOW_LEADING_WILDCARD_SEARCHES=true
+      - GRAYLOG_TRUSTED_PROXIES=10.10.10.0/24,192.168.1.10/32
+    ports:
+      # Graylog web interface and REST API
+      - 192.168.1.51:9000:9000
+      # Syslog TCP
+      - 192.168.1.51:514:1514
+      # Syslog UDP
+      - 192.168.1.51:514:1514/udp
+      # GELF TCP
+      - 192.168.1.51:12201:12201
+      # GELF UDP
+      - 192.168.1.51:12201:12201/udp
+      # BEATS
+      - 192.168.1.51:5044:5044
+      # RAW TCP
+      - 192.168.1.51:5555:5555
+
+    links:
+      - mongo
+      - es1
+      - es2
+      
+    depends_on:
+      mongo:
+        condition: service_started
+      es1:
+        condition: service_started
+      es2:
+        condition: service_started
+    volumes:
+      - ./graylog/config/node-id.gl2:/opt/graylog/config/node-id
+      - ./graylog/shared:/data/shared/
+      - graylog.data.gl2.journal:/opt/graylog/data/journal
+      # make archive folder for the Enterprise plugins
+      - ./graylog/archives:/data/archives
+      # Mount the local saved Enterprise Plugins
+      # wget https://downloads.graylog.org/releases/graylog-enterprise/plugin-bundle/tgz/graylog-enterprise-plugins-2.4.1.tgz
+      - ./graylog/plugins/graylog-plugin-archive-2.4.6.jar:/opt/graylog/plugin/graylog-plugin-archive.jar
+      - ./graylog/plugins/graylog-plugin-auditlog-2.4.6.jar:/opt/graylog/plugin/graylog-plugin-auditlog.jar
+      - ./graylog/plugins/graylog-plugin-license-2.4.6.jar:/opt/graylog/plugin/graylog-plugin-license.jar
+      - ./graylog/plugins/graylog-plugin-auth-sso-2.4.2.jar:/opt/graylog/plugin/graylog-plugin-sso.jar
+    networks:
+      graylog.net:
+        ipv4_address: 10.10.10.101
+  
