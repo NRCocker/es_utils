@@ -1,4 +1,4 @@
-version: '3.3'
+version: '2'
 services:
   proxy:
     image: nginx:latest
@@ -150,5 +150,7 @@ volumes:
 
 networks:
   glnet:
-    config:
-      - subnet: 172.20.0.0/16
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
