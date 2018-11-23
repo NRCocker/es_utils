@@ -22,7 +22,7 @@ volumes:
   graylog.data.gl2.journal:
     driver: "local"
     
-    services:
+services:
   nginx:
     image: nginx:alpine
     container_name: nginx
